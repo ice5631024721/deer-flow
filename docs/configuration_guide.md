@@ -73,6 +73,27 @@ BASIC_MODEL:
 > [!WARNING]
 > Disabling SSL certificate verification reduces security and should only be used in development environments or when you trust the LLM server. In production environments, it's recommended to use properly signed SSL certificates.
 
+### How to configure token limits?
+
+To avoid token limit errors (such as "Your request exceeded model token limit"), you can configure the `max_tokens` parameter to limit the number of tokens generated in a single request:
+
+```yaml
+BASIC_MODEL:
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o"
+  api_key: YOUR_API_KEY
+  max_tokens: 4096  # Maximum number of tokens to generate in a single request
+```
+
+The `max_tokens` parameter helps prevent requests from exceeding the model's token limit. Common values:
+- `1024` - For shorter responses
+- `2048` - For medium-length responses  
+- `4096` - For longer responses
+- `8192` - For very long responses (if model supports it)
+
+> [!NOTE]
+> The optimal `max_tokens` value depends on your specific use case and the model's maximum context length. Setting it too low may truncate responses, while setting it too high may cause token limit errors.
+
 ### How to use Ollama models?
 
 DeerFlow supports the integration of Ollama models. You can refer to [litellm Ollama](https://docs.litellm.ai/docs/providers/ollama). <br>

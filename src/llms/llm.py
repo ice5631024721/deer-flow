@@ -72,6 +72,15 @@ def _create_llm_use_conf(llm_type: LLMType, conf: Dict[str, Any]) -> BaseChatMod
     if "max_retries" not in merged_conf:
         merged_conf["max_retries"] = 3
 
+    # Handle max_tokens parameter for token limit control
+    max_tokens = merged_conf.pop("max_tokens", None)
+    if max_tokens is not None:
+        try:
+            merged_conf["max_tokens"] = int(max_tokens)
+        except (ValueError, TypeError):
+            # Log warning but continue without max_tokens if invalid
+            print(f"Warning: Invalid max_tokens value '{max_tokens}' for {llm_type}, ignoring.")
+
     if llm_type == "reasoning":
         merged_conf["api_base"] = merged_conf.pop("base_url", None)
 

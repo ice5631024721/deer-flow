@@ -11,6 +11,7 @@ BASIC_MODEL:
   model: "doubao-1-5-pro-32k-250115"
   api_key: xxxx
   # max_retries: 3 # Maximum number of retries for LLM calls
+  # max_tokens: 4096 # Maximum number of tokens to generate in a single request (helps avoid token limit errors)
   # verify_ssl: false  # Uncomment this line to disable SSL certificate verification for self-signed certificates
  
 # Reasoning model is optional.
@@ -22,6 +23,7 @@ BASIC_MODEL:
 #   model: "doubao-1-5-thinking-pro-m-250428"
 #   api_key: xxxx
 #   max_retries: 3 # Maximum number of retries for LLM calls
+#   max_tokens: 4096 # Maximum number of tokens to generate in a single request (helps avoid token limit errors)
 
 
 # OTHER SETTINGS:
