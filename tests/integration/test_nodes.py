@@ -1104,13 +1104,7 @@ def patch_multiserver_mcp_client():
             self.description = description
 
     class FakeClient:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            pass
-
-        def get_tools(self):
+        async def get_tools(self):
             return [
                 FakeTool("toolA", "descA"),
                 FakeTool("toolB", "descB"),
@@ -1238,13 +1232,7 @@ async def test_setup_and_execute_agent_step_with_mcp_tools_description_update(
             self.description = description
 
     class FakeClient:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            pass
-
-        def get_tools(self):
+        async def get_tools(self):
             return [FakeTool("toolA", "descA")]
 
     with patch("src.graph.nodes.MultiServerMCPClient", return_value=FakeClient()):
