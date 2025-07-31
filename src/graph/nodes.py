@@ -27,6 +27,8 @@ from src.llms.llm import get_llm_by_type
 from src.prompts.planner_model import Plan
 from src.prompts.template import apply_prompt_template
 from src.utils.json_utils import repair_json_output
+from src.utils.conversation_manager import ConversationManager
+
 
 from .types import State
 from ..config import SELECTED_SEARCH_ENGINE, SearchEngine
@@ -326,21 +328,34 @@ async def _execute_agent_step(
 
     logger.info(f"Executing step: {current_step.title}, agent: {agent_name}")
 
-    # Format completed steps information
+    # Initialize conversation manager for this agent step
+    conversation_manager = ConversationManager(
+        max_messages=15,  # Limit to prevent context overflow
+        max_content_length=15000,  # Reasonable content length limit
+        preserve_recent=5  # Keep recent context
+    )
+
+    # Prepare the input for the agent with conversation management
     completed_steps_info = ""
     if completed_steps:
-        completed_steps_info = "# Completed Research Steps\n\n"
-        for i, step in enumerate(completed_steps):
-            completed_steps_info += f"## Completed Step {i + 1}: {step.title}\n\n"
-            completed_steps_info += f"<finding>\n{step.execution_res}\n</finding>\n\n"
+        completed_steps_info = "# Completed Steps\n\n"
+        for step in completed_steps:
+            # Use conversation manager to handle long step results
+            step_content = step.execution_res or ""
+            if len(step_content) > 5000:  # Truncate very long step results
+                step_content = conversation_manager._create_summary_for_content(step_content)
+            completed_steps_info += f"## {step.title}\n\n{step_content}\n\n"
 
-    # Prepare the input for the agent with completed steps info
+    # Create main content message
+    main_content = f"# Research Topic\n\n{plan_title}\n\n{completed_steps_info}# Current Step\n\n## Title\n\n{current_step.title}\n\n## Description\n\n{current_step.description}\n\n## Locale\n\n{state.get('locale', 'en-US')}"
+    
+    # Add main message to conversation manager
+    main_message = HumanMessage(content=main_content)
+    conversation_manager.add_message(main_message)
+    
+    # Get optimized messages using summary mode for better context management
     agent_input = {
-        "messages": [
-            HumanMessage(
-                content=f"# Research Topic\n\n{plan_title}\n\n{completed_steps_info}# Current Step\n\n## Title\n\n{current_step.title}\n\n## Description\n\n{current_step.description}\n\n## Locale\n\n{state.get('locale', 'en-US')}"
-            )
-        ]
+        "messages": conversation_manager.get_messages(summary_mode=True)
     }
 
     # Add citation reminder for researcher agent
@@ -350,20 +365,23 @@ async def _execute_agent_step(
             for resource in state.get("resources"):
                 resources_info += f"- {resource.title} ({resource.description})\n"
 
-            agent_input["messages"].append(
-                HumanMessage(
-                    content=resources_info
-                    + "\n\n"
-                    + "You MUST use the **local_search_tool** to retrieve the information from the resource files.",
-                )
+            resources_message = HumanMessage(
+                content=resources_info
+                + "\n\n"
+                + "You MUST use the **local_search_tool** to retrieve the information from the resource files.",
             )
+            conversation_manager.add_message(resources_message)
 
-        agent_input["messages"].append(
-            HumanMessage(
-                content="IMPORTANT: DO NOT include inline citations in the text. Instead, track all sources and include a References section at the end using link reference format. Include an empty line between each citation for better readability. Use this format for each reference:\n- [Source Title](URL)\n\n- [Another Source](URL)",
-                name="system",
-            )
+        citation_message = HumanMessage(
+            content="IMPORTANT: DO NOT include inline citations in the text. Instead, track all sources and include a References section at the end using link reference format. Include an empty line between each citation for better readability. Use this format for each reference:\n- [Source Title](URL)\n\n- [Another Source](URL)",
+            name="system",
         )
+        conversation_manager.add_message(citation_message)
+        
+        # Update agent input with managed messages
+        agent_input = {
+            "messages": conversation_manager.get_messages(summary_mode=True)
+        }
 
     # Invoke the agent
     default_recursion_limit = 25
@@ -393,13 +411,23 @@ async def _execute_agent_step(
         input=agent_input, config={"recursion_limit": recursion_limit}
     )
 
-    # Process the result
+    # Process the result with conversation management
     response_content = result["messages"][-1].content
     logger.debug(f"{agent_name.capitalize()} full response: {response_content}")
+    
+    # Use conversation manager to handle potentially long responses
+    if len(response_content) > conversation_manager.max_content_length:
+        logger.info(f"Response content length ({len(response_content)}) exceeds limit, applying truncation")
+        response_content = conversation_manager._create_summary_for_content(response_content)
+        logger.info(f"Response content truncated to {len(response_content)} characters")
 
     # Update the step with the execution result
     current_step.execution_res = response_content
     logger.info(f"Step '{current_step.title}' execution completed by {agent_name}")
+    
+    # Log conversation statistics for monitoring
+    stats = conversation_manager.get_conversation_stats()
+    logger.debug(f"Conversation stats for {agent_name}: {stats}")
 
     return Command(
         update={
