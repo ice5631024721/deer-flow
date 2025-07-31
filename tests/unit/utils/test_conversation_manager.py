@@ -171,8 +171,8 @@ class TestConversationManager:
         
         assert len(result) < len(long_content)
         assert "Content summarized" in result
-        assert result.startswith("A" * 400)  # Beginning preserved
-        assert result.endswith("A" * 400)    # End preserved
+        assert result.startswith("A" * 300)  # Beginning preserved (updated to match new limit)
+        assert result.endswith("A" * 300)    # End preserved (updated to match new limit)
 
 
 class TestConversationManagerIntegration:

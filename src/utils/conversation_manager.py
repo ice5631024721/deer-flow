@@ -14,10 +14,12 @@ from langchain_core.messages import BaseMessage, AIMessage, HumanMessage, System
 
 logger = logging.getLogger(__name__)
 
+# Inspired by DeepResearchAgent: https://github.com/SkyworkAI/DeepResearchAgent
 # Default configuration constants
-MAX_CONTENT_LENGTH = 20000
-MAX_MESSAGES_BEFORE_SUMMARY = 20
-SUMMARY_PRESERVE_RECENT = 5  # Number of recent messages to preserve when summarizing
+# Reduced limits to prevent OpenAI token limit errors (131072 tokens ≈ 98000 characters)
+MAX_CONTENT_LENGTH = 8000  # More conservative limit to prevent token overflow
+MAX_MESSAGES_BEFORE_SUMMARY = 10  # Trigger summary earlier
+SUMMARY_PRESERVE_RECENT = 3  # Keep fewer recent messages to reduce context size
 
 
 def truncate_content(content: str, max_length: int = MAX_CONTENT_LENGTH) -> str:
@@ -147,12 +149,12 @@ class ConversationManager:
         Returns:
             Summarized content
         """
-        if len(content) <= 1000:
+        if len(content) <= 500:  # Ultra-conservative threshold
             return content
             
-        # Extract key information from the beginning and end
-        beginning = content[:400]
-        ending = content[-400:]
+        # Extract key information from the beginning and end with smaller chunks
+        beginning = content[:200]  # Further reduced for safety
+        ending = content[-200:]    # Further reduced for safety
         
         # Create a summary indicating truncation
         summary = f"{beginning}\n\n...Content summarized...\n\n{ending}"

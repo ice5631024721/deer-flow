@@ -328,11 +328,11 @@ async def _execute_agent_step(
 
     logger.info(f"Executing step: {current_step.title}, agent: {agent_name}")
 
-    # Initialize conversation manager for this agent step
+    # Initialize conversation manager for this agent step with ultra-conservative limits
     conversation_manager = ConversationManager(
-        max_messages=15,  # Limit to prevent context overflow
-        max_content_length=15000,  # Reasonable content length limit
-        preserve_recent=5  # Keep recent context
+        max_messages=4,  # Ultra-aggressive limit to prevent context overflow
+        max_content_length=3000,  # Very conservative content length limit to prevent token overflow
+        preserve_recent=2  # Keep minimal recent context to stay within token limits
     )
 
     # Prepare the input for the agent with conversation management
@@ -342,7 +342,7 @@ async def _execute_agent_step(
         for step in completed_steps:
             # Use conversation manager to handle long step results
             step_content = step.execution_res or ""
-            if len(step_content) > 5000:  # Truncate very long step results
+            if len(step_content) > 1000:  # Ultra-aggressive truncation for step results
                 step_content = conversation_manager._create_summary_for_content(step_content)
             completed_steps_info += f"## {step.title}\n\n{step_content}\n\n"
 
