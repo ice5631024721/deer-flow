@@ -7,10 +7,10 @@
 # - A restart is required every time you change the `config.yaml` file.
 
 BASIC_MODEL:
-  base_url: https://api.moonshot.cn/v1
-  model: "kimi-k2-0711-preview"
-  api_key: sk-kpoXq4E2rfCGVFmWYZKwuAWx92onwzd5AHxJnFwvCV2f7tH3
-  max_tokens: 120000
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: "qwen-turbo-latest"
+  api_key: sk-f65421f3dd2b411fb6b7a8a0716151e1
+  max_tokens: 1000000
   # max_retries: 3 # Maximum number of retries for LLM calls
   # verify_ssl: false  # Uncomment this line to disable SSL certificate verification for self-signed certificates
  

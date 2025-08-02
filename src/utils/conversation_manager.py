@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 # Inspired by DeepResearchAgent: https://github.com/SkyworkAI/DeepResearchAgent
 # Default configuration constants
-# Reduced limits to prevent OpenAI token limit errors (131072 tokens ≈ 98000 characters)
-MAX_CONTENT_LENGTH = 8000  # More conservative limit to prevent token overflow
-MAX_MESSAGES_BEFORE_SUMMARY = 10  # Trigger summary earlier
-SUMMARY_PRESERVE_RECENT = 3  # Keep fewer recent messages to reduce context size
+# Balanced limits to prevent OpenAI token limit errors while maintaining functionality
+MAX_CONTENT_LENGTH = 900000  # Reasonable limit for individual message content
+MAX_MESSAGES_BEFORE_SUMMARY = 30  # Allow more messages before summarization
+SUMMARY_PRESERVE_RECENT = 5  # Keep more recent messages for better context
 
 
 def truncate_content(content: str, max_length: int = MAX_CONTENT_LENGTH) -> str:
@@ -83,7 +83,7 @@ class ConversationManager:
         # Truncate message content if too long
         if hasattr(message, 'content') and isinstance(message.content, str):
             if len(message.content) > self.max_content_length:
-                truncated_content = truncate_content(message.content, self.max_content_length)
+                truncated_content = self._create_summary_for_content(message.content)
                 # Create new message with truncated content
                 if isinstance(message, AIMessage):
                     message = AIMessage(content=truncated_content, name=getattr(message, 'name', None))
@@ -173,7 +173,7 @@ class ConversationManager:
         """
         if not summary_mode or not self.summary:
             return self.messages.copy()
-        
+
         # In summary mode, prepend summary as a system message
         summary_message = SystemMessage(content=f"Conversation Summary:\n{self.summary}")
         return [summary_message] + self.messages.copy()

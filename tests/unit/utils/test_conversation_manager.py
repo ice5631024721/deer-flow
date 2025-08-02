@@ -67,7 +67,7 @@ class TestConversationManager:
         manager.add_message(message)
         
         assert len(manager.messages) == 1
-        assert "Content truncated" in manager.messages[0].content
+        assert "Content summarized" in manager.messages[0].content
         assert len(manager.messages[0].content) < 200
     
     def test_automatic_summarization(self):
@@ -171,8 +171,9 @@ class TestConversationManager:
         
         assert len(result) < len(long_content)
         assert "Content summarized" in result
-        assert result.startswith("A" * 300)  # Beginning preserved (updated to match new limit)
-        assert result.endswith("A" * 300)    # End preserved (updated to match new limit)
+        # With default max_content_length=3000, threshold=500, chunk_size=125
+        assert result.startswith("A" * 125)  # Beginning preserved (125 chars)
+        assert result.endswith("A" * 125)    # End preserved (125 chars)
 
 
 class TestConversationManagerIntegration:
